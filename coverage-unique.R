@@ -154,7 +154,7 @@ km_centers %>%
        title = "K-Means Cluster Makeups of Coverage Schemes") + 
   theme_minimal() + theme_reach() + 
   theme(legend.position = "none", strip.text = element_text(face='bold'),
-        axis.text.x = element_text(angle=90, size=8), # alter axis text
+        axis.text.x = element_text(angle=90, size=13), # alter axis text
         panel.grid.minor = element_blank(),
         strip.text.x = element_text(size = 12, colour = "black", hjust = 0.5))
 ggsave('1-coverage.png', width = 15, height = 10, dpi = "retina")
@@ -212,6 +212,20 @@ coverage_clusters_21 %>%
   scale_x_continuous(breaks = scales::pretty_breaks(n = 6)) +
   scale_y_continuous(breaks = scales::pretty_breaks(n = 6))
 ggsave('3-coverage.png', width = 15, height = 10, dpi = "retina")
+
+coverage_clusters_21 %>%
+  ggplot(aes(x = unique_level, y = fct_reorder(team_nick, unique_level))) +
+  geom_bar(aes(fill = team_color, color = team_color2), stat = "identity", alpha = 0.8) +
+  scale_color_identity(aesthetics = c("color", "fill")) +
+  geom_image(aes(image = team_logo_espn, x = unique_level + 0.1), asp = 16/9, size = 0.03) +
+  theme_reach() +
+  labs(x = "Unique Score",
+       y = "",
+       title = "Each Team's Coverage Scheme Uniqueness Score, 2021",
+       subtitle = "Higher score means more unique coverages") +
+  theme(panel.grid.major.y = element_line(size = 0.1))
+ggsave('4-coverage.png', width = 15, height = 10, dpi = "retina")
+
 
 
 
