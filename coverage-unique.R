@@ -226,6 +226,132 @@ coverage_clusters_21 %>%
   theme(panel.grid.major.y = element_line(size = 0.1))
 ggsave('4-coverage.png', width = 15, height = 10, dpi = "retina")
 
+averages <- coverage_season_rates %>%
+  filter(season == 2021) %>%
+  pivot_longer(cols = contains('rate'), 
+               names_to = "name") %>%
+  group_by(name) %>%
+  summarize(nfl_average = 100*mean(value)) %>%
+  mutate(name = case_when(
+    name == "open_rate" ~ "MOFO",
+    name == "rotate_rate" ~ "ROTATE",
+    name == "rate_0" ~ "0",
+    name == "rate_1" ~ "1",
+    name == "rate_2" ~ "2",
+    name == "rate_2M" ~ "2M",
+    name == "rate_3" ~ "3",
+    name == "rate_4" ~ "4",
+    name == "rate_6" ~ "6"
+  ))
 
+most_unique <- coverage_season_rates %>%
+  filter(season == 2021, defense %in% c("LA", "LV")) %>%
+  pivot_longer(cols = contains('rate'), 
+               names_to = "name") %>%
+  mutate(name = case_when(
+    name == "open_rate" ~ "MOFO",
+    name == "rotate_rate" ~ "ROTATE",
+    name == "rate_0" ~ "0",
+    name == "rate_1" ~ "1",
+    name == "rate_2" ~ "2",
+    name == "rate_2M" ~ "2M",
+    name == "rate_3" ~ "3",
+    name == "rate_4" ~ "4",
+    name == "rate_6" ~ "6"
+  )) %>%
+  left_join(averages, by = c("name")) %>%
+  left_join(teams_colors_logos, by = c("defense" = "team_abbr")) %>%
+  mutate_if(is.numeric, funs(. * 100))
+
+ggplot() + 
+  geom_bar(data = most_unique, aes(x = name, y = value, 
+          fill = ifelse(defense == "LA", team_color2, team_color), 
+          color = ifelse(defense == "LA", team_color, team_color2)), 
+           position="dodge", stat="identity") +
+  geom_col(data = averages, aes(x = name, y = nfl_average), width = 0.5, alpha = 0.8, fill = "black") +
+  facet_wrap(~team_nick) +
+  theme_reach() +
+  scale_color_identity(aesthetics = c("fill", "color")) +
+  labs(x = "Coverage Type",
+       y = "Frequency (%)",
+       title = "How the Raiders and Rams Are Being Unique in 2021",
+       subtitle = "Team colored bars to represent each team's coverage frequency with dark bars to represent the NFL's average") +
+  theme(strip.text.x = element_text(size = 18, colour = "black", hjust = 0.5, face = "bold"),
+        panel.grid.major.x = element_line(size = 0.1)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  annotate("text", x = 3.5, y = 100*0.34, label = "NFL Average", size = 5) +
+  annotate("curve", x = 3.27, y = 100*0.326, xend = 4.65, yend = 100*0.303, angle = 120,  
+           curvature = 0.3, arrow = arrow(length = unit(2, "mm")), size = 1.1)
+ggsave('5-coverage.png', width = 15.7, height = 10, dpi = "retina")
+
+least_unique <- coverage_season_rates %>%
+  filter(season == 2021, defense %in% c("NO", "CIN")) %>%
+  pivot_longer(cols = contains('rate'), 
+               names_to = "name") %>%
+  mutate(name = case_when(
+    name == "open_rate" ~ "MOFO",
+    name == "rotate_rate" ~ "ROTATE",
+    name == "rate_0" ~ "0",
+    name == "rate_1" ~ "1",
+    name == "rate_2" ~ "2",
+    name == "rate_2M" ~ "2M",
+    name == "rate_3" ~ "3",
+    name == "rate_4" ~ "4",
+    name == "rate_6" ~ "6"
+  )) %>%
+  left_join(averages, by = c("name")) %>%
+  left_join(teams_colors_logos, by = c("defense" = "team_abbr")) %>%
+  mutate_if(is.numeric, funs(. * 100))
+
+ggplot() + 
+  geom_bar(data = least_unique, aes(x = name, y = value, 
+                                   fill = ifelse(defense == "CIN", team_color2, team_color), 
+                                   color = ifelse(defense == "CIN", team_color, team_color2)), 
+           position="dodge", stat="identity", alpha = 0.9) +
+  geom_col(data = averages, aes(x = name, y = nfl_average), width = 0.5, alpha = 0.8, fill = "black") +
+  facet_wrap(~team_nick) +
+  theme_reach() +
+  scale_color_identity(aesthetics = c("fill", "color")) +
+  labs(x = "Coverage Type",
+       y = "Frequency (%)",
+       title = "How the Bengals and Saints Are Being Normal in 2021",
+       subtitle = "Team colored bars to represent each team's coverage frequency with dark bars to represent the NFL's average") +
+  theme(strip.text.x = element_text(size = 18, colour = "black", hjust = 0.5, face = "bold"),
+        panel.grid.major.x = element_line(size = 0.1)) +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 6)) +
+  annotate("text", x = 3.5, y = 100*0.34, label = "NFL Average", size = 5) +
+  annotate("curve", x = 3.27, y = 100*0.326, xend = 4.65, yend = 100*0.303, angle = 120,  
+           curvature = 0.3, arrow = arrow(length = unit(2, "mm")), size = 1.1)
+ggsave('6-coverage.png', width = 15.7, height = 10, dpi = "retina")
+
+pbp <- load_pbp(2014:2021)
+
+pass_epa <- pbp %>% 
+  filter(pass == 1, !is.na(epa)) %>%
+  group_by(defteam, season) %>%
+  summarize(pass_epa = mean(epa))
+
+coverage_clusters <- coverage_clusters %>%
+  left_join(pass_epa, by = c("defense" = "defteam", "season")) 
+
+cluster_non_21 <- coverage_clusters %>%
+  filter(season != 2021)
+cluster_21 <- coverage_clusters %>%
+  filter(season == 2021)
+
+ggplot() +
+  geom_point(data = cluster_non_21, aes(fill = team_color, color = team_color2, 
+                                        x = unique_level, y = pass_epa), alpha = 0.22, shape = 21, size = 5.5) +
+  geom_image(data = cluster_21, aes(image = team_logo_espn, x = unique_level, 
+                                    y = pass_epa), asp = 16/9, size = 0.05) +
+  scale_color_identity(aesthetics = c("fill", "color")) +
+  theme_reach() +
+  scale_y_reverse(breaks = scales::pretty_breaks(n = 5)) +
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  labs(x = "Coverage Scheme Uniqueness Score",
+       y = "EPA Per Pass",
+       title = "Coverage Scheme Uniqueness Score Doesn't Correlate With EPA/Pass",
+       subtitle = "2021 teams listed in logos with each defense from 2014 to 2020 listed in dots")
+ggsave('7-coverage.png', width = 15, height = 10, dpi = "retina")
 
 
